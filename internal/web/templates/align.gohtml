@@ -1,0 +1,53 @@
+{{ define "content" }}
+<h1>Align video to Strava activity</h1>
+<p class="muted">
+  File: <code>{{ .Video.Basename }}</code><br>
+  Camera-reported time: <strong>{{ .Video.RecordedAtFmt }}</strong>
+  · duration {{ .Video.DurationFmt }}
+</p>
+
+{{ if .Candidates }}
+<form method="post" action="/videos/{{ .Video.ID }}/align">
+  <h2>Pick the matching activity</h2>
+  <p class="muted">
+    Camera clocks drift, so the right activity may be earlier or later than
+    the recorded time. Pick the one that best matches your ride.
+  </p>
+  <ul class="candidates">
+    {{ range .Candidates }}
+    <li>
+      <label>
+        <input type="radio" name="activity_id" value="{{ .ID }}" required>
+        <strong>{{ .StartFmt }}</strong> &middot;
+        {{ .Name }} &middot;
+        {{ .DurationFmt }} &middot;
+        {{ printf "%.1f" .DistanceKm }} km
+        <span class="muted">[#{{ .ID }}]</span>
+      </label>
+    </li>
+    {{ end }}
+  </ul>
+
+  <h2>Time offset</h2>
+  <p class="muted">
+    Seconds to add to <em>video</em> time to get <em>Strava</em> time.
+    Try 0 first; you can tweak this later if locations don't line up.
+  </p>
+  <label>
+    Offset (seconds):
+    <input type="number" name="offset_s" value="0" step="1">
+  </label>
+
+  <p>
+    <button type="submit" class="btn primary">Save alignment</button>
+    <a href="/videos" class="btn">Cancel</a>
+  </p>
+</form>
+{{ else }}
+<p class="warn">
+  No Strava activities found within ±24 hours of the video's recorded time.
+  Either the camera's clock is significantly off, or this video isn't from a
+  ride that synced. <a href="/videos/{{ .Video.ID }}/align?refresh=1">Refresh from Strava</a>.
+</p>
+{{ end }}
+{{ end }}

@@ -1,0 +1,21 @@
+services:
+  close-pass:
+    build: .
+    image: close-pass:latest
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/data
+      # Point this at the police-reports share on TrueNAS
+      - /mnt/police-reports:/reports
+    environment:
+      PUBLIC_URL: ${PUBLIC_URL:?set in .env}
+      STRAVA_CLIENT_ID: ${STRAVA_CLIENT_ID:?set in .env}
+      STRAVA_CLIENT_SECRET: ${STRAVA_CLIENT_SECRET:?set in .env}
+      YOUTUBE_CLIENT_ID: ${YOUTUBE_CLIENT_ID:-}
+      YOUTUBE_CLIENT_SECRET: ${YOUTUBE_CLIENT_SECRET:-}
+      BASIC_AUTH: ${BASIC_AUTH:-}
+      PREROLL_SECONDS: "60"
+      POSTROLL_SECONDS: "60"
+      TZ: ${TZ:-Europe/London}

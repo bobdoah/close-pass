@@ -1,0 +1,42 @@
+{{ define "content" }}
+<h1>Videos</h1>
+{{ if not .StravaConnected }}
+<p class="warn">Connect Strava before aligning videos. <a href="/auth/strava">Connect now →</a></p>
+{{ end }}
+{{ if .Videos }}
+<table class="grid">
+  <thead>
+    <tr>
+      <th>Recorded</th>
+      <th>Camera</th>
+      <th>Duration</th>
+      <th>Status</th>
+      <th>File</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {{ range .Videos }}
+    <tr>
+      <td>{{ .RecordedAtFmt }}</td>
+      <td>{{ .Camera }}</td>
+      <td>{{ .DurationFmt }}</td>
+      <td><span class="status status-{{ .Status }}">{{ .Status }}</span></td>
+      <td class="path" title="{{ .Path }}">{{ .Basename }}</td>
+      <td>
+        {{ if eq .Status "AWAITING_ALIGNMENT" }}
+          <a class="btn" href="/videos/{{ .ID }}/align">Align</a>
+        {{ else if or (eq .Status "AWAITING_INCIDENTS") (eq .Status "INCIDENTS_MARKED") }}
+          <a class="btn" href="/videos/{{ .ID }}">Open</a>
+        {{ else }}
+          <a href="/videos/{{ .ID }}">View</a>
+        {{ end }}
+      </td>
+    </tr>
+    {{ end }}
+  </tbody>
+</table>
+{{ else }}
+<p class="muted">No videos detected yet. Drop files into <code>{{ .InboxDir }}</code>.</p>
+{{ end }}
+{{ end }}

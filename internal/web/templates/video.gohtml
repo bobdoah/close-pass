@@ -1,0 +1,68 @@
+{{ define "content" }}
+<h1>{{ .Video.Basename }}</h1>
+<p class="muted">
+  Recorded {{ .Video.RecordedAtFmt }} &middot; {{ .Video.DurationFmt }}
+  &middot; status <span class="status status-{{ .Video.Status }}">{{ .Video.Status }}</span>
+  {{ if .Video.StravaActivityID.Valid }}
+    &middot; Strava activity #{{ .Video.StravaActivityID.Int64 }}
+    (offset {{ .Video.GPSOffsetS }}s)
+    &middot; <a href="/videos/{{ .Video.ID }}/align">Re-align</a>
+  {{ end }}
+</p>
+
+<video id="player" controls preload="metadata" src="/videos/{{ .Video.ID }}/file"></video>
+
+<section>
+  <h2>Mark an incident</h2>
+  <p class="muted">
+    Scrub to the moment of the close pass and click the button. The clip will
+    be cut from {{ .PreRollS }}s before to {{ .PostRollS }}s after.
+  </p>
+  <form method="post" action="/videos/{{ .Video.ID }}/incidents" id="markform">
+    <input type="hidden" name="t_seconds" id="t_seconds" value="0">
+    <button type="button" class="btn primary" id="markbtn">Mark incident at current time</button>
+    <span id="markhint" class="muted"></span>
+  </form>
+  <script>
+    (function () {
+      const v = document.getElementById('player');
+      const t = document.getElementById('t_seconds');
+      const btn = document.getElementById('markbtn');
+      const form = document.getElementById('markform');
+      const hint = document.getElementById('markhint');
+      btn.addEventListener('click', () => {
+        t.value = v.currentTime.toFixed(2);
+        hint.textContent = 'Marking at ' + t.value + 's…';
+        form.submit();
+      });
+    })();
+  </script>
+</section>
+
+<section>
+  <h2>Incidents on this video</h2>
+  {{ if .Incidents }}
+  <table class="grid">
+    <thead><tr>
+      <th>t</th><th>When</th><th>Type</th><th>Reg</th>
+      <th>Make/Model</th><th>Clip</th><th></th>
+    </tr></thead>
+    <tbody>
+      {{ range .Incidents }}
+      <tr>
+        <td>{{ printf "%.1fs" .TSeconds }}</td>
+        <td>{{ .IncidentAtFmt }}</td>
+        <td>{{ .IncidentTypeOr "—" }}</td>
+        <td>{{ .RegistrationOr "—" }}</td>
+        <td>{{ .MakeModelOr "—" }}</td>
+        <td><span class="status">{{ .ClipStatus }}</span></td>
+        <td><a href="/incidents/{{ .ID }}">Edit</a></td>
+      </tr>
+      {{ end }}
+    </tbody>
+  </table>
+  {{ else }}
+  <p class="muted">No incidents marked yet.</p>
+  {{ end }}
+</section>
+{{ end }}

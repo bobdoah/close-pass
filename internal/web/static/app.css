@@ -1,0 +1,80 @@
+:root {
+  --fg: #1a1a1a;
+  --bg: #fafafa;
+  --muted: #6b6b6b;
+  --accent: #1b6ac9;
+  --warn: #b85c00;
+  --ok: #1f7a3d;
+  --border: #d6d6d6;
+  --status-bg: #efefef;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--fg);
+  background: var(--bg);
+}
+
+.topbar {
+  display: flex; gap: 1.5rem; align-items: center;
+  padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--border); background: white;
+}
+.topbar .brand { font-weight: 700; text-decoration: none; color: var(--fg); }
+.topbar nav { display: flex; gap: 1rem; align-items: center; margin-left: auto; }
+.topbar nav a { text-decoration: none; color: var(--accent); }
+
+main { padding: 1.25rem; max-width: 1100px; margin: 0 auto; }
+
+h1 { font-size: 1.5rem; margin-top: 0; }
+h2 { font-size: 1.1rem; margin-top: 2rem; }
+
+.muted { color: var(--muted); }
+.warn { color: var(--warn); }
+.ok { color: var(--ok); }
+
+table.grid { border-collapse: collapse; width: 100%; }
+table.grid th, table.grid td {
+  border-bottom: 1px solid var(--border); padding: 0.5rem 0.6rem; text-align: left;
+  vertical-align: top;
+}
+table.grid th { font-weight: 600; color: var(--muted); font-size: 0.85rem; }
+table.grid td.path { font-family: ui-monospace, monospace; max-width: 260px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.status {
+  display: inline-block; padding: 0.05rem 0.4rem;
+  background: var(--status-bg); border-radius: 0.25rem;
+  font-size: 0.8rem; color: var(--muted);
+}
+.status-AWAITING_ALIGNMENT { background: #fff4d6; color: #8a5a00; }
+.status-AWAITING_INCIDENTS { background: #d6e8ff; color: #1b4a8a; }
+.status-INCIDENTS_MARKED { background: #d6f0d6; color: #1f7a3d; }
+.status-DONE { background: #e0e0e0; color: #444; }
+
+.btn {
+  display: inline-block; padding: 0.35rem 0.75rem;
+  border: 1px solid var(--border); border-radius: 0.3rem;
+  background: white; color: var(--fg); text-decoration: none; cursor: pointer;
+  font: inherit;
+}
+.btn.primary { background: var(--accent); color: white; border-color: var(--accent); }
+.btn:hover { filter: brightness(0.97); }
+
+video {
+  width: 100%; max-height: 60vh; background: black;
+  border-radius: 0.4rem; margin: 1rem 0;
+}
+
+form label { display: block; margin: 0.5rem 0; }
+form label.check { display: inline-flex; align-items: center; gap: 0.5rem; }
+form input[type="text"], form input[type="number"], form input:not([type]),
+form select { padding: 0.3rem 0.5rem; border: 1px solid var(--border);
+              border-radius: 0.2rem; min-width: 16rem; }
+
+ul.candidates { list-style: none; padding: 0; }
+ul.candidates li { padding: 0.4rem 0; border-bottom: 1px solid var(--border); }
+
+code { font-family: ui-monospace, monospace; background: #eee; padding: 0 0.2rem; border-radius: 0.15rem; }

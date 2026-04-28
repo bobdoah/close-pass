@@ -1,0 +1,57 @@
+{{ define "content" }}
+<h1>Incident</h1>
+<p class="muted">
+  Source: <a href="/videos/{{ .Incident.VideoID }}">{{ .Video.Basename }}</a>
+  &middot; at {{ printf "%.1fs" .Incident.TSeconds }}
+  &middot; {{ .Incident.IncidentAtFmt }}
+</p>
+
+<section>
+  <h2>Clip</h2>
+  <p>
+    Status: <span class="status">{{ .Incident.ClipStatus }}</span>
+    {{ if .Incident.UploadError.Valid }}
+      <span class="warn">{{ .Incident.UploadError.String }}</span>
+    {{ end }}
+  </p>
+  {{ if .Incident.YouTubeURL.Valid }}
+    <p><a href="{{ .Incident.YouTubeURL.String }}" target="_blank">YouTube link</a></p>
+  {{ end }}
+  {{ if .Incident.ClipPath.Valid }}
+    <p class="muted">Local clip: <code>{{ .Incident.ClipPath.String }}</code></p>
+  {{ end }}
+</section>
+
+<form method="post" action="/incidents/{{ .Incident.ID }}">
+  <h2>Vehicle &amp; type</h2>
+  <label>Type
+    <select name="incident_type">
+      <option value=""></option>
+      {{ $current := .Incident.IncidentTypeOr "" }}
+      {{ range .Types }}
+        <option value="{{ . }}" {{ if eq . $current }}selected{{ end }}>{{ . }}</option>
+      {{ end }}
+    </select>
+  </label>
+  <label>Make <input name="make" value="{{ .Incident.MakeOr "" }}"></label>
+  <label>Model <input name="model" value="{{ .Incident.ModelOr "" }}"></label>
+  <label>Registration
+    <input name="registration" value="{{ .Incident.RegistrationOr "" }}"
+           pattern="[A-Za-z0-9 ]*" autocomplete="off">
+  </label>
+
+  <h2>Police workflow</h2>
+  <label>Report number <input name="report_number" value="{{ .Incident.ReportNumberOr "" }}"></label>
+  <label>Incident number <input name="incident_number" value="{{ .Incident.IncidentNumberOr "" }}"></label>
+  <label class="check">
+    <input type="checkbox" name="nip_sent" value="1" {{ if .Incident.NIPSent }}checked{{ end }}>
+    NIP sent
+  </label>
+  <label>Result <input name="result" value="{{ .Incident.ResultOr "" }}"></label>
+
+  <p>
+    <button class="btn primary" type="submit">Save</button>
+    <a class="btn" href="/incidents">Back to list</a>
+  </p>
+</form>
+{{ end }}

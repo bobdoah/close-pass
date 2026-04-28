@@ -1,0 +1,26 @@
+# Binaries
+/close-pass
+/dist/
+*.exe
+
+# Local data
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+/data/
+
+# Secrets
+.env
+.env.local
+secrets/
+oauth-tokens/
+
+# Go
+vendor/
+
+# Editor
+.idea/
+.vscode/
+*.swp
+.DS_Store

@@ -1,0 +1,28 @@
+{{ define "layout" }}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ .Title }} · close-pass</title>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <header class="topbar">
+    <a href="/" class="brand">close-pass</a>
+    <nav>
+      <a href="/videos">Videos</a>
+      <a href="/incidents">Incidents</a>
+      <a href="/export.csv">Export</a>
+      {{ if .StravaConnected }}
+        <span class="ok">Strava ✓</span>
+      {{ else }}
+        <a href="/auth/strava">Connect Strava</a>
+      {{ end }}
+    </nav>
+  </header>
+  <main>
+    {{ template "content" . }}
+  </main>
+</body>
+</html>
+{{ end }}

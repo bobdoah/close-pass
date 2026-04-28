@@ -1,0 +1,49 @@
+{{ define "content" }}
+<h1>Incidents</h1>
+<p>
+  <a href="/export.csv" class="btn">Download CSV</a>
+</p>
+{{ if .Incidents }}
+<table class="grid">
+  <thead>
+    <tr>
+      <th>Date</th><th>Time</th>
+      <th>Make</th><th>Model</th><th>Reg</th>
+      <th>Location</th><th>YouTube</th>
+      <th>Report #</th><th>Incident #</th>
+      <th>Type</th><th>NIP</th><th>Result</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {{ range .Incidents }}
+    <tr>
+      <td>{{ .DateFmt }}</td>
+      <td>{{ .TimeFmt }}</td>
+      <td>{{ .MakeOr "—" }}</td>
+      <td>{{ .ModelOr "—" }}</td>
+      <td>{{ .RegistrationOr "—" }}</td>
+      <td>
+        {{ if .LocationLinkOr "" }}
+          <a href="{{ .LocationLinkOr "" }}" target="_blank">map</a>
+        {{ else }}—{{ end }}
+      </td>
+      <td>
+        {{ if .YouTubeURLOr "" }}
+          <a href="{{ .YouTubeURLOr "" }}" target="_blank">link</a>
+        {{ else }}—{{ end }}
+      </td>
+      <td>{{ .ReportNumberOr "—" }}</td>
+      <td>{{ .IncidentNumberOr "—" }}</td>
+      <td>{{ .IncidentTypeOr "—" }}</td>
+      <td>{{ if .NIPSent }}✓{{ else }}—{{ end }}</td>
+      <td>{{ .ResultOr "—" }}</td>
+      <td><a href="/incidents/{{ .ID }}">Edit</a></td>
+    </tr>
+    {{ end }}
+  </tbody>
+</table>
+{{ else }}
+<p class="muted">No incidents yet.</p>
+{{ end }}
+{{ end }}
