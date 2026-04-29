@@ -12,6 +12,7 @@ import (
 	"github.com/bobdoah/close-pass/internal/strava"
 	"github.com/bobdoah/close-pass/internal/watcher"
 	"github.com/bobdoah/close-pass/internal/web"
+	"github.com/bobdoah/close-pass/internal/worker"
 )
 
 func main() {
@@ -51,6 +52,18 @@ func main() {
 	go func() {
 		if err := wch.Run(ctx); err != nil && ctx.Err() == nil {
 			log.Error("watcher", "err", err)
+		}
+	}()
+
+	clipWorker := &worker.Clip{
+		Cfg:         cfg,
+		Store:       store,
+		StravaCache: stravaCache,
+		Log:         log.With("component", "clip-worker"),
+	}
+	go func() {
+		if err := clipWorker.Run(ctx); err != nil && ctx.Err() == nil {
+			log.Error("clip worker", "err", err)
 		}
 	}()
 

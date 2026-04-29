@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/subtle"
-	"database/sql"
 	"embed"
 	"encoding/csv"
 	"encoding/hex"
@@ -86,6 +85,7 @@ func (s *Server) Routes() http.Handler {
 	r.Get("/incidents", s.handleIncidents)
 	r.Get("/incidents/{id}", s.handleIncident)
 	r.Post("/incidents/{id}", s.handleIncidentSave)
+	r.Post("/incidents/{id}/recut", s.handleIncidentRecut)
 
 	r.Get("/export.csv", s.handleExportCSV)
 
@@ -298,6 +298,17 @@ func (s *Server) handleAlignSave(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Any existing incidents on this video should be re-cut against the new
+	// alignment.
+	if _, err := s.Store.DB.ExecContext(r.Context(),
+		`UPDATE incidents
+		 SET clip_status = 'PENDING', upload_error = NULL,
+		     incident_at = NULL, lat = NULL, lon = NULL, location_link = NULL,
+		     updated_at = unixepoch()
+		 WHERE video_id = ?`, id); err != nil {
+		s.Log.Warn("requeue incidents after re-align", "video", id, "err", err)
+	}
+
 	// Pre-fetch the GPS stream so incident location lookups are fast.
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -332,48 +343,19 @@ func (s *Server) handleCreateIncident(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// The clip worker enriches with GPS data and cuts the clip asynchronously.
 	in := &db.Incident{
 		VideoID:   v.ID,
 		TSeconds:  t,
 		PreRollS:  s.Cfg.PreRollSeconds,
 		PostRollS: s.Cfg.PostRollSeconds,
 	}
-
-	// If the video is aligned and we have streams cached, fill in coordinates.
-	if v.StravaActivityID.Valid {
-		streams, err := s.StravaCache.GetStreams(r.Context(), v.StravaActivityID.Int64)
-		if err == nil && streams != nil && v.RecordedAt.Valid {
-			absTime := v.RecordedAt.Int64 + int64(t) + v.GPSOffsetS
-			in.IncidentAt = sql.NullInt64{Int64: absTime, Valid: true}
-
-			// Compute offset within the activity.
-			startAt := s.activityStart(r.Context(), v.StravaActivityID.Int64)
-			if !startAt.IsZero() {
-				offset := int(absTime - startAt.Unix())
-				if lat, lon, ok := streams.LookupAt(offset); ok {
-					in.Lat = sql.NullFloat64{Float64: lat, Valid: true}
-					in.Lon = sql.NullFloat64{Float64: lon, Valid: true}
-				}
-			}
-		}
-	}
-
 	incidentID, err := s.Store.InsertIncident(r.Context(), in)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
 	}
 	http.Redirect(w, r, "/incidents/"+incidentID, http.StatusFound)
-}
-
-func (s *Server) activityStart(ctx context.Context, activityID int64) time.Time {
-	row := s.Store.DB.QueryRowContext(ctx,
-		`SELECT start_at FROM strava_activities WHERE id = ?`, activityID)
-	var startAt int64
-	if err := row.Scan(&startAt); err != nil {
-		return time.Time{}
-	}
-	return time.Unix(startAt, 0)
 }
 
 func (s *Server) handleIncidents(w http.ResponseWriter, r *http.Request) {
@@ -468,6 +450,15 @@ func (s *Server) handleIncidentSave(w http.ResponseWriter, r *http.Request) {
 		id,
 	)
 	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	http.Redirect(w, r, "/incidents/"+id, http.StatusFound)
+}
+
+func (s *Server) handleIncidentRecut(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if err := s.Store.MarkPendingForRecut(r.Context(), id); err != nil {
 		http.Error(w, err.Error(), 500)
 		return
 	}

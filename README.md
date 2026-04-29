@@ -19,10 +19,14 @@ This is the initial scaffolding. The currently working pieces:
 - [x] Strava OAuth + activity caching.
 - [x] Web UI: video list, alignment screen, basic incident marking, incident
       list, CSV export.
-- [ ] ffmpeg clip extraction (planned next).
-- [ ] YouTube upload (planned next).
-- [ ] OpenStreetMap link generation in the incident view (location link is
-      written to DB but not rendered yet for new incidents).
+- [x] Background clip worker: enriches incidents with GPS data and cuts the
+      configured pre/post-roll window with ffmpeg into `Clips/`.
+- [x] OpenStreetMap location link generation, displayed on the incident view.
+- [x] Re-cut button on each incident; re-aligning a video automatically
+      requeues all incidents on it.
+- [ ] YouTube upload (needs Google Cloud project — planned next).
+- [ ] Folder state machine (move source video to `To Report/` once cut, then
+      to `Reported (manual)/` once a report number is entered).
 
 ## Architecture
 

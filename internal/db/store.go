@@ -196,6 +196,106 @@ func (s *Store) ListAllIncidents(ctx context.Context) ([]*Incident, error) {
 	return scanIncidents(rows)
 }
 
+// ClaimPendingIncident atomically picks the oldest PENDING incident, marks it
+// CUTTING, and returns its ID. Returns "", sql.ErrNoRows if none are pending.
+func (s *Store) ClaimPendingIncident(ctx context.Context) (string, error) {
+	tx, err := s.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return "", err
+	}
+	defer tx.Rollback()
+
+	var id string
+	err = tx.QueryRowContext(ctx,
+		`SELECT id FROM incidents
+		 WHERE clip_status = 'PENDING'
+		 ORDER BY created_at ASC LIMIT 1`).Scan(&id)
+	if err != nil {
+		return "", err
+	}
+	if _, err := tx.ExecContext(ctx,
+		`UPDATE incidents SET clip_status = 'CUTTING', upload_error = NULL,
+		     updated_at = unixepoch()
+		 WHERE id = ?`, id); err != nil {
+		return "", err
+	}
+	return id, tx.Commit()
+}
+
+func (s *Store) GetIncident(ctx context.Context, id string) (*Incident, error) {
+	rows, err := s.DB.QueryContext(ctx, incidentSelectColumns+
+		` FROM incidents WHERE id = ?`, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out, err := scanIncidents(rows)
+	if err != nil {
+		return nil, err
+	}
+	if len(out) == 0 {
+		return nil, sql.ErrNoRows
+	}
+	return out[0], nil
+}
+
+// EnrichIncident sets the wall-clock time, lat/lon, and location link.
+// Any zero values for lat/lon are stored as NULL.
+func (s *Store) EnrichIncident(ctx context.Context, id string, incidentAt int64, lat, lon float64, locationLink string) error {
+	var nlat, nlon sql.NullFloat64
+	var link sql.NullString
+	if lat != 0 || lon != 0 {
+		nlat = sql.NullFloat64{Float64: lat, Valid: true}
+		nlon = sql.NullFloat64{Float64: lon, Valid: true}
+		link = sql.NullString{String: locationLink, Valid: locationLink != ""}
+	}
+	_, err := s.DB.ExecContext(ctx, `
+		UPDATE incidents SET
+			incident_at = COALESCE(?, incident_at),
+			lat = COALESCE(?, lat),
+			lon = COALESCE(?, lon),
+			location_link = COALESCE(?, location_link),
+			updated_at = unixepoch()
+		WHERE id = ?`,
+		nullableInt64(incidentAt), nlat, nlon, link, id)
+	return err
+}
+
+func (s *Store) MarkIncidentCut(ctx context.Context, id, clipPath string) error {
+	_, err := s.DB.ExecContext(ctx,
+		`UPDATE incidents SET clip_status = 'CUT', clip_path = ?, upload_error = NULL,
+		     updated_at = unixepoch()
+		 WHERE id = ?`,
+		clipPath, id)
+	return err
+}
+
+func (s *Store) MarkIncidentFailed(ctx context.Context, id, reason string) error {
+	_, err := s.DB.ExecContext(ctx,
+		`UPDATE incidents SET clip_status = 'FAILED', upload_error = ?,
+		     updated_at = unixepoch()
+		 WHERE id = ?`,
+		reason, id)
+	return err
+}
+
+// MarkPendingForRecut moves an incident back to PENDING so the worker re-cuts
+// it. Used after the alignment offset is changed.
+func (s *Store) MarkPendingForRecut(ctx context.Context, id string) error {
+	_, err := s.DB.ExecContext(ctx,
+		`UPDATE incidents SET clip_status = 'PENDING', upload_error = NULL,
+		     updated_at = unixepoch()
+		 WHERE id = ?`, id)
+	return err
+}
+
+func nullableInt64(v int64) sql.NullInt64 {
+	if v == 0 {
+		return sql.NullInt64{}
+	}
+	return sql.NullInt64{Int64: v, Valid: true}
+}
+
 const incidentSelectColumns = `SELECT id, video_id, t_seconds, pre_roll_s, post_roll_s,
 	incident_at, lat, lon, incident_type, make, model, registration,
 	clip_path, youtube_url, location_link, report_number, incident_number,

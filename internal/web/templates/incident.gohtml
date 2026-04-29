@@ -20,7 +20,25 @@
   {{ if .Incident.ClipPath.Valid }}
     <p class="muted">Local clip: <code>{{ .Incident.ClipPath.String }}</code></p>
   {{ end }}
+  <form method="post" action="/incidents/{{ .Incident.ID }}/recut" style="display:inline">
+    <button class="btn" type="submit">Re-cut clip</button>
+  </form>
 </section>
+
+{{ if .Incident.LocationLink.Valid }}
+<section>
+  <h2>Location</h2>
+  <p>
+    <a href="{{ .Incident.LocationLink.String }}" target="_blank">Open in OpenStreetMap</a>
+    {{ if and .Incident.Lat.Valid .Incident.Lon.Valid }}
+      <span class="muted">
+        ({{ printf "%.5f" .Incident.Lat.Float64 }},
+         {{ printf "%.5f" .Incident.Lon.Float64 }})
+      </span>
+    {{ end }}
+  </p>
+</section>
+{{ end }}
 
 <form method="post" action="/incidents/{{ .Incident.ID }}">
   <h2>Vehicle &amp; type</h2>
