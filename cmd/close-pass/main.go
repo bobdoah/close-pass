@@ -76,7 +76,8 @@ func main() {
 	log.Info("close-pass starting",
 		"db", cfg.DBPath,
 		"inbox", cfg.InboxDir,
-		"clips", cfg.ClipsDir,
+		"to_report", cfg.ToReportDir,
+		"reported", cfg.ReportedDir,
 		"public_url", cfg.PublicURL,
 	)
 	if err := srv.ListenAndServe(ctx); err != nil {

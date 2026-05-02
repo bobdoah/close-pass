@@ -16,10 +16,9 @@ type Config struct {
 
 	// Filesystem layout (paths inside the police-reports mount)
 	ReportsRoot string // root mount path (e.g. /reports)
-	InboxDir    string // To Process
-	ToReportDir string // To Report
-	ReportedDir string // Reported (manual)
-	ClipsDir    string // Clips (created if missing)
+	InboxDir    string // To Process    — raw videos drop here
+	ToReportDir string // To Report     — generated clips, awaiting submission
+	ReportedDir string // Reported (manual) — clips that have been reported
 
 	// HTTP
 	HTTPAddr   string
@@ -62,7 +61,6 @@ func Load() (*Config, error) {
 	c.InboxDir = filepath.Join(c.ReportsRoot, "To Process")
 	c.ToReportDir = filepath.Join(c.ReportsRoot, "To Report")
 	c.ReportedDir = filepath.Join(c.ReportsRoot, "Reported (manual)")
-	c.ClipsDir = filepath.Join(c.ReportsRoot, "Clips")
 
 	if c.PublicURL == "" {
 		return nil, errors.New("PUBLIC_URL is required (e.g. http://nas.lan:8080)")
@@ -71,7 +69,7 @@ func Load() (*Config, error) {
 		return nil, errors.New("STRAVA_CLIENT_ID and STRAVA_CLIENT_SECRET are required")
 	}
 
-	for _, dir := range []string{c.DataDir, c.InboxDir, c.ToReportDir, c.ReportedDir, c.ClipsDir} {
+	for _, dir := range []string{c.DataDir, c.InboxDir, c.ToReportDir, c.ReportedDir} {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			return nil, fmt.Errorf("create dir %s: %w", dir, err)
 		}

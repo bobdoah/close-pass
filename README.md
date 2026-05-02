@@ -20,22 +20,21 @@ This is the initial scaffolding. The currently working pieces:
 - [x] Web UI: video list, alignment screen, basic incident marking, incident
       list, CSV export.
 - [x] Background clip worker: enriches incidents with GPS data and cuts the
-      configured pre/post-roll window with ffmpeg into `Clips/`.
+      configured pre/post-roll window with ffmpeg into `To Report/`.
 - [x] OpenStreetMap location link generation, displayed on the incident view.
 - [x] Re-cut button on each incident; re-aligning a video automatically
       requeues all incidents on it.
+- [x] Clips auto-move to `Reported (manual)/` when a report number is
+      entered, and back to `To Report/` if the field is cleared.
 - [ ] YouTube upload (needs Google Cloud project — planned next).
-- [ ] Folder state machine (move source video to `To Report/` once cut, then
-      to `Reported (manual)/` once a report number is entered).
 
 ## Architecture
 
 ```
 police-reports/
-├── To Process/         <- watcher input
-├── To Report/          <- video moves here once incidents are extracted
-├── Reported (manual)/  <- video moves here after report number entered
-└── Clips/              <- generated incident clips (uploaded to YouTube)
+├── To Process/         <- raw videos drop here for ingest
+├── To Report/          <- generated clips, awaiting submission to police
+└── Reported (manual)/  <- clips that have been reported
 ```
 
 The Go service:
@@ -47,10 +46,13 @@ The Go service:
 3. The user scrubs the embedded video player, clicks "mark incident" at each
    close pass. Each incident's GPS coordinates are looked up in the cached
    Strava stream (camera time + offset → activity offset → lat/lon).
-4. (Planned) A worker cuts ±60 s around each incident with ffmpeg and uploads
-   to YouTube as unlisted.
+4. A background worker cuts ±60 s around each incident with ffmpeg and writes
+   the clip into `To Report/`. (YouTube upload is planned.)
 5. The user fills in plate / make / model / report number / NIP status in the
-   incident form. Everything exports as CSV.
+   incident form. As soon as a report number is entered, the clip moves from
+   `To Report/` to `Reported (manual)/`. Clear the field and it moves back.
+6. Source videos stay in `To Process/` so additional incidents can be marked
+   later; the user prunes that directory by hand.
 
 ## Setup
 

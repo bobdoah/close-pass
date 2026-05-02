@@ -423,11 +423,23 @@ func (s *Server) handleIncidentSave(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), 400)
 		return
 	}
+	existing, err := s.getIncident(r.Context(), id)
+	if err != nil {
+		http.Error(w, err.Error(), 404)
+		return
+	}
+
 	nipSent := 0
 	if r.FormValue("nip_sent") == "1" {
 		nipSent = 1
 	}
-	_, err := s.Store.DB.ExecContext(r.Context(), `
+	newReportNum := strings.TrimSpace(r.FormValue("report_number"))
+	oldReportNum := ""
+	if existing.ReportNumber.Valid {
+		oldReportNum = existing.ReportNumber.String
+	}
+
+	_, err = s.Store.DB.ExecContext(r.Context(), `
 		UPDATE incidents SET
 			incident_type = NULLIF(?, ''),
 			make = NULLIF(?, ''),
@@ -443,7 +455,7 @@ func (s *Server) handleIncidentSave(w http.ResponseWriter, r *http.Request) {
 		r.FormValue("make"),
 		r.FormValue("model"),
 		strings.ToUpper(strings.ReplaceAll(r.FormValue("registration"), " ", "")),
-		r.FormValue("report_number"),
+		newReportNum,
 		r.FormValue("incident_number"),
 		nipSent,
 		r.FormValue("result"),
@@ -453,7 +465,38 @@ func (s *Server) handleIncidentSave(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), 500)
 		return
 	}
+
+	// Move the clip between To Report/ and Reported (manual)/ when the report
+	// number transitions to/from empty.
+	if existing.ClipPath.Valid && oldReportNum != newReportNum {
+		switch {
+		case oldReportNum == "" && newReportNum != "":
+			s.relocateClip(r.Context(), id, existing.ClipPath.String, s.Cfg.ReportedDir)
+		case oldReportNum != "" && newReportNum == "":
+			s.relocateClip(r.Context(), id, existing.ClipPath.String, s.Cfg.ToReportDir)
+		}
+	}
+
 	http.Redirect(w, r, "/incidents/"+id, http.StatusFound)
+}
+
+// relocateClip moves a clip into destDir on the same filesystem and updates
+// the incident's clip_path. Logs and continues on failure — the user can
+// always move the file by hand.
+func (s *Server) relocateClip(ctx context.Context, incidentID, currentPath, destDir string) {
+	if filepath.Dir(currentPath) == destDir {
+		return
+	}
+	dest := filepath.Join(destDir, filepath.Base(currentPath))
+	if err := os.Rename(currentPath, dest); err != nil {
+		s.Log.Warn("relocate clip", "incident", incidentID, "from", currentPath, "to", dest, "err", err)
+		return
+	}
+	if _, err := s.Store.DB.ExecContext(ctx,
+		`UPDATE incidents SET clip_path = ?, updated_at = unixepoch() WHERE id = ?`,
+		dest, incidentID); err != nil {
+		s.Log.Warn("update clip_path", "incident", incidentID, "err", err)
+	}
 }
 
 func (s *Server) handleIncidentRecut(w http.ResponseWriter, r *http.Request) {

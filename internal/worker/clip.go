@@ -147,7 +147,7 @@ func (c *Clip) cut(ctx context.Context, v *db.Video, in *db.Incident) error {
 		reg = in.Registration.String
 	}
 	name := video.Filename(in.ID, at, reg)
-	dest := filepath.Join(c.Cfg.ClipsDir, name)
+	dest := filepath.Join(c.Cfg.ToReportDir, name)
 
 	c.Log.Info("cutting clip",
 		"incident", in.ID, "src", v.Path, "start", start, "dur", end-start, "dest", dest)
